@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Voice Photo</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="titlebar">
+    <div class="window-controls">
+      <button class="window-close" data-window-action="close" data-i18n-title="win.close" data-i18n-aria="win.close"><span>×</span></button>
+      <button class="window-minimize" data-window-action="minimize" data-i18n-title="win.minimize" data-i18n-aria="win.minimize"><span>−</span></button>
+      <button class="window-maximize" data-window-action="maximize" data-i18n-title="win.maximize" data-i18n-aria="win.maximize"><span>↗</span></button>
+    </div>
+    <div class="app-title" data-i18n="app.title">AI Voice Photo</div>
+    <button class="theme-toggle" id="themeToggle" data-i18n-title="theme.title"></button>
+  </header>
+
+  <div class="shell">
+    <nav class="sidebar" aria-label="Навигация">
+      <button class="nav-item active" data-page="chat">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z"/></svg><span data-i18n="nav.chat"></span>
+      </button>
+      <button class="nav-item" data-page="models">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5l5.5 2.8L8 8.1 2.5 5.3zM2.5 8l5.5 2.8L13.5 8M2.5 10.7l5.5 2.8 5.5-2.8"/></svg><span data-i18n="nav.models"></span>
+      </button>
+      <button class="nav-item" data-page="diagnostics">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 8.5h3l1.5-4 3 8 1.5-4h4"/></svg><span data-i18n="nav.diagnostics"></span>
+      </button>
+      <div class="nav-spacer"></div>
+      <button class="nav-item" data-page="settings">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4.5h6M11.5 4.5h2M2.5 11.5h2M7.5 11.5h6"/><circle cx="10" cy="4.5" r="1.5"/><circle cx="6" cy="11.5" r="1.5"/></svg><span data-i18n="nav.settings"></span>
+      </button>
+    </nav>
+
+    <main class="page-area">
+      <div class="banner hidden" id="banner" role="alert"></div>
+
+      <!-- ================================ CHAT ================================ -->
+      <section class="page active" id="page-chat">
+        <div class="page-heading">
+          <div>
+            <div class="eyebrow" data-i18n="chat.eyebrow"></div>
+            <h2><span data-i18n="chat.title"></span> <span class="count-pill" id="statePill"></span></h2>
+          </div>
+          <div class="heading-tools">
+            <label class="inline" for="micMode"><span data-i18n="chat.mic"></span>
+              <select id="micMode">
+                <option value="off" data-i18n="chat.mic.off"></option>
+                <option value="full" data-i18n="chat.mic.full"></option>
+                <option value="stt_only" data-i18n="chat.mic.stt_only"></option>
+              </select>
+            </label>
+            <button id="clearBtn" data-i18n="chat.clear"></button>
+          </div>
+        </div>
+        <div class="meter"><div id="micLevel"></div></div>
+        <div class="heading-note" id="micHint"></div>
+
+        <div class="chat-body">
+          <section class="photo-stage card" id="photoStage" data-state="LISTENING" aria-labelledby="photoTitle">
+            <div class="photo-frame">
+              <img id="photoImg" class="hidden" alt="" data-i18n-title="photo.title">
+              <div class="photo-empty" id="photoEmpty"><span id="photoEmptyText" data-i18n="photo.empty"></span></div>
+            </div>
+            <div class="photo-bar">
+              <span class="photo-note" id="photoNote" data-i18n="photo.static"></span>
+              <button id="photoChooseBtn" data-i18n="photo.choose"></button>
+            </div>
+            <h3 class="hidden" id="photoTitle" data-i18n="photo.title"></h3>
+          </section>
+          <div class="transcript card" id="transcript" aria-live="polite"></div>
+        </div>
+
+        <div class="stt-line">
+          <span class="muted" data-i18n="chat.recognized"></span>
+          <span id="sttText" class="stt-text">—</span>
+          <span id="sttMeta" class="muted"></span>
+        </div>
+
+        <div class="composer card">
+          <textarea id="textInput" rows="2" data-i18n-placeholder="chat.placeholder"></textarea>
+          <div class="composer-controls">
+            <select id="routeSelect" data-i18n-title="chat.route">
+              <option value="llm_tts" data-i18n="chat.route.llm_tts"></option>
+              <option value="llm_only" data-i18n="chat.route.llm_only"></option>
+              <option value="tts_only" data-i18n="chat.route.tts_only"></option>
+            </select>
+            <span class="spacer"></span>
+            <button id="stopBtn" disabled data-i18n="chat.stop"></button>
+            <button id="sendBtn" class="primary" data-i18n="chat.send"></button>
+          </div>
+        </div>
+        <div class="footnote"><span id="lastTurn"></span><span class="spacer"></span><span id="sessionInfo"></span></div>
+      </section>
+
+      <!-- =============================== MODELS =============================== -->
+      <section class="page" id="page-models">
+        <div class="page-heading">
+          <div><div class="eyebrow" data-i18n="models.eyebrow"></div><h2 data-i18n="models.title"></h2></div>
+          <span class="heading-note" id="modelsNote" data-i18n="models.note"></span>
+        </div>
+        <div class="card-grid">
+          <div class="card group">
+            <div class="group-head"><h3 data-i18n="models.stt"></h3><span class="status-line" id="sttStatus"></span></div>
+            <div class="rows">
+              <div class="row"><span data-i18n="models.provider"></span><span class="value">faster-whisper</span></div>
+              <div class="row"><label for="cfgSttModel" data-i18n="models.model"></label>
+                <select id="cfgSttModel"><option value="small" data-i18n="models.stt.small"></option><option value="base" data-i18n="models.stt.base"></option></select></div>
+              <div class="row"><label for="cfgSttDevice" data-i18n="models.device"></label>
+                <select id="cfgSttDevice"><option value="cuda" data-i18n="models.gpu"></option><option value="cpu" data-i18n="models.cpu"></option></select></div>
+              <div class="row"><label for="cfgSttCompute" data-i18n="models.compute"></label>
+                <select id="cfgSttCompute"><option value="float16">float16 (GPU)</option><option value="int8_float16">int8_float16 (GPU)</option><option value="int8">int8 (CPU)</option><option value="float32">float32</option></select></div>
+            </div>
+            <div class="group-foot muted" id="sttLanguageNote"></div>
+          </div>
+
+          <div class="card group">
+            <div class="group-head"><h3 data-i18n="models.tts"></h3><span class="status-line" id="ttsStatus"></span></div>
+            <div class="rows">
+              <div class="row"><span data-i18n="models.provider"></span><span class="value">Silero TTS</span></div>
+              <div class="row"><span data-i18n="models.model"></span><span class="value" id="cfgTtsModel"></span></div>
+              <div class="row"><span><span data-i18n="models.voice"></span><small data-i18n="models.voice.hint"></small></span><span class="value" id="ttsVoiceValue"></span></div>
+              <div class="row"><label for="cfgTtsDevice" data-i18n="models.device"></label>
+                <select id="cfgTtsDevice"><option value="cpu" data-i18n="models.cpu"></option><option value="cuda" data-i18n="models.gpu"></option></select></div>
+              <div class="row"><label for="cfgTtsStreaming" data-i18n="models.streaming"></label><input type="checkbox" class="switch" id="cfgTtsStreaming"></div>
+            </div>
+            <div class="group-foot muted" id="ttsLanguageNote"></div>
+          </div>
+
+          <div class="card group wide">
+            <div class="group-head"><h3 data-i18n="models.llm"></h3><span class="status-line" id="llmStatus"></span></div>
+            <div class="rows">
+              <div class="row"><span data-i18n="models.provider"></span><span class="value" data-i18n="models.llm.provider"></span></div>
+              <div class="row"><label for="cfgLlmEndpoint" data-i18n="models.endpoint"></label>
+                <span class="control-pair"><input type="text" id="cfgLlmEndpoint" spellcheck="false"><button id="llmRefreshBtn" data-i18n="models.check"></button></span></div>
+              <div class="row"><label for="cfgLlmModel" data-i18n="models.model"></label><select id="cfgLlmModel"></select></div>
+              <div class="row"><label for="cfgLlmTemp" data-i18n="models.temperature"></label><input type="number" class="short" id="cfgLlmTemp" min="0" max="2" step="0.05"></div>
+              <div class="row"><label for="cfgLlmMaxTokens" data-i18n="models.maxTokens"></label><input type="number" class="short" id="cfgLlmMaxTokens" min="16" max="4096" step="1"></div>
+              <div class="row"><label for="cfgLlmNoThink" data-i18n="models.noThink"></label><input type="checkbox" class="switch" id="cfgLlmNoThink"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================= DIAGNOSTICS ============================ -->
+      <section class="page" id="page-diagnostics">
+        <div class="page-heading">
+          <div><div class="eyebrow" data-i18n="diag.eyebrow"></div><h2 data-i18n="diag.title"></h2></div>
+          <div class="heading-tools"><span class="heading-note" id="exportResult"></span><button id="exportBtn" data-i18n="diag.export"></button></div>
+        </div>
+
+        <div class="card-grid">
+          <div class="card group">
+            <div class="group-head"><h3 data-i18n="diag.runtime"></h3></div>
+            <table class="plain" id="runtimeTable"></table>
+          </div>
+          <div class="card group">
+            <div class="group-head"><h3 data-i18n="diag.language"></h3><span class="status-line" id="languageState"></span></div>
+            <table class="plain" id="languageTable"></table>
+            <div class="group-head sub"><h3 data-i18n="diag.resources"></h3></div>
+            <table class="plain" id="resourceTable"></table>
+            <div class="group-foot muted" data-i18n="diag.resources.note"></div>
+          </div>
+        </div>
+
+        <div class="card group">
+          <div class="group-head">
+            <h3 data-i18n="diag.summary"></h3>
+            <span class="heading-note" id="diagCount"></span>
+            <span class="spacer"></span>
+            <select id="diagMode" data-i18n-title="diag.pipeline">
+              <option value="full" data-i18n="diag.mode.full"></option>
+              <option value="text_llm_tts" data-i18n="diag.mode.text_llm_tts"></option>
+              <option value="llm_only" data-i18n="diag.mode.llm_only"></option>
+              <option value="tts_only" data-i18n="diag.mode.tts_only"></option>
+              <option value="stt_only" data-i18n="diag.mode.stt_only"></option>
+            </select>
+          </div>
+          <table class="data" id="summaryTable"></table>
+        </div>
+
+        <div class="card group">
+          <div class="group-head">
+            <h3 data-i18n="diag.turns"></h3><span class="spacer"></span>
+            <label class="inline check"><input type="checkbox" id="allColumns"><span data-i18n="diag.allColumns"></span></label>
+          </div>
+          <div class="table-scroll"><table class="data" id="turnTable"></table></div>
+          <div class="group-foot muted" id="turnNotes"></div>
+        </div>
+
+        <details class="card group">
+          <summary data-i18n="diag.definitions"></summary>
+          <dl class="defs" id="metricDefs"></dl>
+        </details>
+
+        <div class="logs-toolbar"><h3 class="logs-header" id="logsHeader" data-i18n="diag.log"></h3><button id="copyLogs" data-i18n="diag.copyLog"></button></div>
+        <div class="log visible" id="eventLog"></div>
+      </section>
+
+      <!-- ============================== SETTINGS ============================== -->
+      <section class="page" id="page-settings">
+        <div class="page-heading">
+          <div><div class="eyebrow" data-i18n="settings.eyebrow"></div><h2 data-i18n="settings.title"></h2></div>
+          <span class="heading-note" id="settingsNote" data-i18n="settings.note"></span>
+        </div>
+        <div class="settings-column">
+          <div class="card group">
+            <div class="group-head"><h3 data-i18n="settings.conversation"></h3></div>
+            <div class="rows">
+              <div class="row"><label for="cfgLanguage"><span data-i18n="settings.language"></span><small data-i18n="settings.language.hint"></small></label><select id="cfgLanguage"></select></div>
+              <div class="row"><label for="cfgHistory"><span data-i18n="settings.history"></span><small data-i18n="settings.history.unit"></small></label><input type="number" class="short" id="cfgHistory" min="0" max="20" step="1"></div>
+              <div class="row"><label for="cfgVadSilence"><span data-i18n="settings.silence"></span><small data-i18n="settings.silence.unit"></small></label><input type="number" class="short" id="cfgVadSilence" min="150" max="3000" step="50"></div>
+              <div class="row"><label for="cfgPremiseCheck"><span data-i18n="settings.premiseCheck"></span><small data-i18n="settings.premiseCheck.hint"></small></label><input type="checkbox" class="switch" id="cfgPremiseCheck"></div>
+              <div class="row"><label for="cfgLengthVariation"><span data-i18n="settings.lengthVariation"></span><small data-i18n="settings.lengthVariation.hint"></small></label><input type="checkbox" class="switch" id="cfgLengthVariation"></div>
+            </div>
+          </div>
+
+          <div class="card group" id="characterCard">
+            <div class="group-head">
+              <h3 data-i18n="character.title"></h3>
+              <span class="count-pill" id="characterState"></span>
+              <span class="spacer"></span>
+              <button id="charNewBtn" data-i18n="character.new"></button>
+              <button id="charDuplicateBtn" data-i18n="character.duplicate"></button>
+              <button id="charDeleteBtn" data-i18n="character.delete"></button>
+            </div>
+            <div class="rows">
+              <div class="row"><label for="charProfile"><span data-i18n="character.active"></span><small data-i18n="character.active.hint"></small></label><select id="charProfile"></select></div>
+              <div class="row"><label for="charDisplayName" data-i18n="character.displayName"></label><input type="text" id="charDisplayName" spellcheck="false" autocomplete="off"></div>
+              <div class="row"><label for="charName"><span data-i18n="character.name"></span><small data-i18n="character.name.hint"></small></label><input type="text" id="charName" spellcheck="false" autocomplete="off"></div>
+              <div class="row stack">
+                <div class="stack-head"><label for="charDescription" data-i18n="character.description"></label><button id="charResetDescriptionBtn" data-i18n="character.resetDescription"></button></div>
+                <textarea id="charDescription" rows="8" spellcheck="false"></textarea>
+                <div class="muted small" data-i18n="character.description.hint"></div>
+              </div>
+              <div class="row"><label for="charVoice"><span data-i18n="character.voice"></span><small data-i18n="character.voice.hint"></small></label>
+                <div class="control-pair"><select id="charVoice"></select><button id="charPreviewBtn" data-i18n="character.preview"></button></div></div>
+              <div class="row actions">
+                <span class="muted small" id="characterNote"></span>
+                <span class="button-pair"><button id="charCancelBtn" data-i18n="character.cancel"></button><button id="charSaveBtn" class="primary" data-i18n="character.save"></button></span>
+              </div>
+            </div>
+            <details class="inner">
+              <summary data-i18n="character.rules"></summary>
+              <pre class="readonly-text" id="coreRules"></pre>
+            </details>
+          </div>
+
+          <div class="card group" id="avatarCard">
+            <div class="group-head"><h3 data-i18n="avatar.title"></h3><span class="status-line" id="avatarEngineState"></span></div>
+            <div class="rows">
+              <div class="row"><span data-i18n="avatar.photo"></span>
+                <span class="control-pair"><span class="value" id="avatarPhotoName"></span><button id="avatarChooseBtn" data-i18n="photo.choose"></button><button id="avatarClearBtn" data-i18n="photo.clear"></button></span></div>
+              <div class="row"><span><span data-i18n="avatar.engine"></span><small data-i18n="avatar.engine.hint"></small></span><span class="value" data-i18n="avatar.engine.none"></span></div>
+              <div class="row"><label for="cfgTtsOutput"><span data-i18n="avatar.speech"></span><small data-i18n="avatar.speech.hint"></small></label>
+                <select id="cfgTtsOutput"><option value="local" data-i18n="avatar.speech.local"></option><option value="avatar" data-i18n="avatar.speech.avatar"></option></select></div>
+              <div class="row"><span></span><span class="value" id="avatarSpeechState"></span></div>
+            </div>
+            <p class="muted small" data-i18n="avatar.text"></p>
+          </div>
+
+          <div class="card group">
+            <div class="group-head"><h3 data-i18n="settings.audio"></h3><span class="status-line" id="audioStatus"></span></div>
+            <div class="rows">
+              <div class="row"><label for="cfgMic" data-i18n="settings.input"></label><select id="cfgMic"></select></div>
+              <div class="row"><label for="cfgOut" data-i18n="settings.output"></label><select id="cfgOut"></select></div>
+              <div class="row"><span></span><button id="devicesRefreshBtn" data-i18n="settings.refresh"></button></div>
+            </div>
+          </div>
+
+          <details class="card group">
+            <summary data-i18n="settings.advanced"></summary>
+            <div class="rows">
+              <div class="row"><label for="cfgVadThreshold" data-i18n="settings.threshold"></label><input type="number" class="short" id="cfgVadThreshold" min="0.05" max="0.95" step="0.05"></div>
+              <div class="row"><label for="cfgVadMinSpeech" data-i18n="settings.minSpeech"></label><input type="number" class="short" id="cfgVadMinSpeech" min="60" max="2000" step="10"></div>
+              <div class="row"><label data-i18n="settings.service"></label><button id="restartVoiceBtn" data-i18n="settings.restart"></button></div>
+            </div>
+            <div class="group-foot muted" id="restartResult"></div>
+          </details>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <footer class="statusbar">
+    <div class="status-strip" id="statusStrip" aria-label="Состояние компонентов"></div>
+    <div class="state-badge" id="stateBadge" data-state="LISTENING">LISTENING</div>
+  </footer>
+
+  <script src="strings.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>

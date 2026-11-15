@@ -1,0 +1,59 @@
+# dependencies / environments
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# downloaded model weights and caches
+models/
+*.pt
+*.jit
+*.bin
+*.onnx
+*.safetensors
+*.gguf
+.cache/
+
+# user-local config (devices, endpoint, tuning)
+config/user.json
+
+# generated output
+artifacts/logs/
+artifacts/diagnostics/
+artifacts/tmp/
+artifacts/reports/live_acceptance_*.json
+!artifacts/reports/live_acceptance_latest.json
+artifacts/reports/doctor.json
+artifacts/reports/test_results.json
+*.log
+*.wav
+*.mp3
+*.tmp
+
+# secrets
+.env
+.env.*
+*.key
+*.pem
+
+# OS / editor
+Thumbs.db
+.DS_Store
+.vscode/
+.idea/
+dist/
+out/
+artifacts/reports/process_identity.json
+artifacts/reports/process_reaping.json
+artifacts/reports/tts_smoke.json
+artifacts/reports/llm_smoke.json
+artifacts/reports/mic_smoke.json
+artifacts/reports/gui_selftest.json
+artifacts/reports/conversation_eval.json
+models/**/*.sha256
+artifacts/reports/voice_smoke.json
+artifacts/reports/persona_eval.json
+artifacts/reports/action_truth_eval.json
+# large raw evaluation data (every reply, reader labels): kept locally as evidence, not versioned
+artifacts/reports/*_RAW.json

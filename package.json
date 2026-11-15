@@ -1,0 +1,30 @@
+{
+  "name": "ai-voice-photo",
+  "productName": "AI Voice Photo",
+  "version": "0.1.0",
+  "description": "AI Voice Photo: local voice conversation with an AI through an animated photo of a face",
+  "private": true,
+  "main": "app/electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "setup": "node scripts/setup.js",
+    "doctor": "node scripts/doctor.js",
+    "test": "node scripts/run_tests.js",
+    "test:core": "node scripts/run_tests.js --core",
+    "test:service": "node scripts/run_tests.js --service",
+    "acceptance": "node scripts/live_acceptance.js",
+    "tts-smoke": "node scripts/tts_smoke.js",
+    "llm-smoke": "node scripts/llm_smoke.js",
+    "mic-smoke": "node scripts/mic_smoke.js",
+    "conversation-eval": "node scripts/conversation_eval.js",
+    "voice-smoke": "node scripts/voice_smoke.js",
+    "persona-eval": "node scripts/persona_eval.js",
+    "action-truth-eval": "node scripts/action_truth_eval.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "electron": "^39.0.0"
+  }
+}

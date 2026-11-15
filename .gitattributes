@@ -1,0 +1,8 @@
+* text=auto
+*.bat text eol=crlf
+*.js text eol=lf
+*.py text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+scripts/lib/baselines/*.txt text eol=lf
+tests/fixtures/*.txt text eol=lf

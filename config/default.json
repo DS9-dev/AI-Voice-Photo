@@ -1,0 +1,76 @@
+{
+  "conversation": {
+    "language": "ru",
+    "micMode": "off",
+    "speakingWatchdogMs": 120000,
+    "premiseCheck": false,
+    "lengthVariation": false
+  },
+  "avatar": {
+    "engine": "none",
+    "photo": ""
+  },
+  "characters": {
+    "activeId": "default",
+    "profiles": []
+  },
+  "persona": {
+    "prompt": ""
+  },
+  "llm": {
+    "provider": "lmstudio",
+    "endpoint": "http://127.0.0.1:1234/v1",
+    "model": "",
+    "preferredModelPattern": "qwen3\\.5.*9b",
+    "temperature": 0.7,
+    "topP": 0.8,
+    "topK": 20,
+    "presencePenalty": 0,
+    "maxTokens": 300,
+    "disableThinking": true,
+    "reasoningBudgetTokens": 2048,
+    "firstByteTimeoutMs": 60000,
+    "idleTimeoutMs": 30000
+  },
+  "session": {
+    "historyTurns": 10
+  },
+  "stt": {
+    "provider": "faster-whisper",
+    "model": "small",
+    "device": "cuda",
+    "computeType": "float16",
+    "beamSize": 5
+  },
+  "tts": {
+    "provider": "silero",
+    "modelId": "",
+    "voice": "",
+    "device": "cpu",
+    "threads": 4,
+    "sampleRate": 48000,
+    "sentenceStreaming": true,
+    "output": "local"
+  },
+  "vad": {
+    "provider": "silero-vad",
+    "threshold": 0.5,
+    "minSpeechMs": 250,
+    "minSilenceMs": 600,
+    "speechPadMs": 200,
+    "maxUtteranceSec": 30
+  },
+  "audio": {
+    "hostApi": "auto",
+    "inputDevice": "",
+    "outputDevice": "",
+    "listenResumeDelayMs": 250
+  },
+  "ui": {
+    "theme": "system",
+    "language": "ru"
+  },
+  "service": {
+    "pythonPath": ""
+  }
+}

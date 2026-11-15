@@ -57,3 +57,6 @@ artifacts/reports/persona_eval.json
 artifacts/reports/action_truth_eval.json
 # large raw evaluation data (every reply, reader labels): kept locally as evidence, not versioned
 artifacts/reports/*_RAW.json
+
+# AVP-03+: isolated animation experiments (venvs, models, outputs) — never published
+experiments/

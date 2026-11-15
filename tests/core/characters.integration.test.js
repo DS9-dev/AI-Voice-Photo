@@ -49,7 +49,7 @@ async function boot({ lm = {}, env = {}, user } = {}) {
   const userPath = path.join(dir, 'user.json');
   if (user) fs.writeFileSync(userPath, JSON.stringify(user));
   const configStore = new ConfigStore({ defaultPath: DEFAULT_PATH, userPath });
-  configStore.update({ llm: { endpoint } });
+  configStore.update({ llm: { endpoint }, avatar: { engine: 'none' }, tts: { output: 'local' } });
   const voiceClient = new VoiceServiceClient({ command: process.execPath, args: [FAKE], env, helloTimeoutMs: 3000 });
   // everything the Core tells the voice service, in order
   const sent = [];

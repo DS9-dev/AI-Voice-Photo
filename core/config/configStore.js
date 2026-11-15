@@ -48,6 +48,7 @@ const THEMES = ['system', 'light', 'dark'];
 // where speech is heard: local speakers, or the photo-animation engine (core/avatar), which
 // then plays the audio itself in sync with the animated face
 const TTS_OUTPUTS = ['local', 'avatar'];
+const AVATAR_ENGINES = ['none', 'ditto'];
 
 /** Clamp / sanitize values that would otherwise break the pipeline. */
 function normalizeConfig(cfg, defaults) {
@@ -96,8 +97,16 @@ function normalizeConfig(cfg, defaults) {
   c.tts.voice = '';
   c.tts.modelId = String(c.tts.modelId || '');
   // the photo and the animation engine (core/avatar); 'none' = the photo is shown as it is
-  c.avatar.engine = String(c.avatar.engine || defaults.avatar.engine || 'none');
+  c.avatar.engine = AVATAR_ENGINES.includes(c.avatar.engine) ? c.avatar.engine : (defaults.avatar.engine || 'none');
   c.avatar.photo = String(c.avatar.photo || '');
+  c.avatar.maxSize = Math.round(num(c.avatar.maxSize, defaults.avatar.maxSize ?? 1280, 512, 1920));
+  // face sharpening after Ditto's 512 px render (AVP-04 fix 1): 0 = off
+  c.avatar.sharpen = num(c.avatar.sharpen, defaults.avatar.sharpen ?? 0.6, 0, 1);
+  c.avatar.pythonPath = String(c.avatar.pythonPath || '');
+  // ambient glow around the photo (AVP-04): on/off and intensity 0..1
+  const g = isPlainObject(c.avatar.glow) ? c.avatar.glow : {};
+  const dg = isPlainObject(defaults.avatar.glow) ? defaults.avatar.glow : { enabled: true, intensity: 0.6 };
+  c.avatar.glow = { enabled: g.enabled === undefined ? dg.enabled !== false : g.enabled === true, intensity: num(g.intensity, dg.intensity ?? 0.6, 0, 1) };
   if (!THEMES.includes(c.ui.theme)) c.ui.theme = defaults.ui.theme;
   c.ui.language = String(c.ui.language || defaults.ui.language);
   return c;

@@ -1,0 +1,21 @@
+# Avatar service (Ditto) — installed into .venv_avatar by setup_avatar.bat, after
+# torch==2.7.1 / torchvision==0.22.1 / torchaudio==2.7.1 from https://download.pytorch.org/whl/cu128
+# Versions verified on Windows 11 + RTX 5060 Ti (sm_120) in AVP-03/AVP-04.
+numpy==2.2.6
+scipy
+librosa
+opencv-python-headless
+scikit-image
+imageio
+imageio-ffmpeg
+einops
+cython
+filetype
+tqdm
+mediapipe==0.10.14
+protobuf>=4.25.3,<5
+onnxruntime-gpu==1.23.2
+tensorrt-cu12==10.13.3.9
+sounddevice
+psutil
+huggingface_hub

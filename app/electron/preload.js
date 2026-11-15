@@ -23,6 +23,7 @@ const CHANNELS = [
   'avatar:photo',
   'avatar:choosePhoto',
   'avatar:clearPhoto',
+  'avatar:stats',
   'diag:get',
   'diag:resources',
   'diag:export',
@@ -35,7 +36,7 @@ contextBridge.exposeInMainWorld('vvc', {
   },
   /** close | minimize | maximize (the window is frameless) */
   windowControl(action) {
-    if (['close', 'minimize', 'maximize'].includes(action)) ipcRenderer.send('window:control', action);
+    if (['close', 'minimize', 'maximize', 'fullscreen-on', 'fullscreen-off'].includes(action)) ipcRenderer.send('window:control', action);
   },
   onEvent(callback) {
     const listener = (_event, data) => callback(data);

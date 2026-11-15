@@ -22,7 +22,7 @@ async function boot({ lm = {}, env = {}, config = {} } = {}) {
   const endpoint = await fake.start();
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vvc-int-'));
   const configStore = new ConfigStore({ defaultPath: path.join(ROOT, 'config', 'default.json'), userPath: path.join(dir, 'user.json') });
-  configStore.update({ llm: { endpoint }, ...config });
+  configStore.update({ llm: { endpoint }, avatar: { engine: 'none' }, tts: { output: 'local' }, ...config });
   const voiceClient = new VoiceServiceClient({ command: process.execPath, args: [FAKE], env, helloTimeoutMs: 3000 });
   const app = new Companion({ rootDir: dir, overrides: { configStore, voiceClient, llmPollOkMs: 100000, llmPollFailMs: 100000 } });
   const ui = [];

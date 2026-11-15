@@ -101,3 +101,28 @@ data URL; интерфейс сам путей не выбирает — тол�
 
 Документы VaMVoiceCompanion о вехах VC-M0…VC-M1.2 лежат в `docs/legacy/`
 как история принятых решений (в т.ч. о поведении персонажа и задержках).
+
+## AVP-04: Ditto в приложении
+
+```
+SpeechOutput (core) ──play WAV──► avatar_service (Python, .venv_avatar)
+                    ◄─speech_started/ended, level──┘   │
+                                                       ├─ Ditto, непрерывный поток: тишина между ответами,
+                                                       │  речь — на той же шкале времени (без перезапусков)
+                                                       ├─ вывод звука (sounddevice): часы = DAC-время устройства
+                                                       ├─ кадр k показывается, когда звучит его звук (k·40 мс)
+                                                       └─ MJPEG http://127.0.0.1:<port>/stream.mjpg ──► <img> в окне
+```
+
+- Процесс и протокол — те же, что у голосового сервиса (`VoiceServiceClient`
+  с компонентом `avatar`); команды: `init`, `set_photo`, `play`, `stop`,
+  `configure`, `get_stats`, `record`.
+- Код Ditto встроен в `services/avatar_service/ditto` (Apache-2.0, без
+  изменений, кроме двух описанных в его README); ускорение для RTX 50
+  (TensorRT 10, fp16) и гейт губ — `accel.py`; бесконечный поток — `live.py`.
+- Stdin сервиса читается без висящего чтения (`PeekNamedPipe`): иначе
+  загрузка DLL в потоке моделей блокируется на Windows.
+- Интерфейс: живой поток поверх статичного фото; фон — размытое фото и
+  мягкая палитра; свечение меняет только opacity/transform одного слоя по
+  громкости звучащей речи (`avatarLevel`). Полноэкранный режим — класс CSS и
+  `BrowserWindow.setFullScreen`, поток при этом не перезапускается.

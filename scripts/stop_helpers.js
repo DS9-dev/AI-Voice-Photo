@@ -13,7 +13,7 @@ function listWindows() {
   const script = [
     "$root = $args[0]",
     "Get-CimInstance Win32_Process | Where-Object {",
-    "  ($_.Name -like 'python*' -and $_.CommandLine -like '*services.voice_service*--app=ai-voice-photo*') -or",
+    "  ($_.Name -like 'python*' -and $_.CommandLine -like '*services.*_service*--app=ai-voice-photo*') -or",
     "  ($_.Name -like 'electron*' -and $_.CommandLine -like ('*' + $root + '*'))",
     "} | ForEach-Object { '{0}|{1}' -f $_.ProcessId, $_.Name }",
   ].join('\n');
@@ -23,7 +23,7 @@ function listWindows() {
 
 function listPosix() {
   const fs = require('node:fs');
-  const r = spawnSync('pgrep', ['-f', '--', 'services[.]voice_service.*--app=ai-voice-photo'], { encoding: 'utf8' });
+  const r = spawnSync('pgrep', ['-f', '--', 'services[.](voice|avatar)_service.*--app=ai-voice-photo'], { encoding: 'utf8' });
   return (r.stdout || '').split('\n').filter(Boolean).map(Number)
     .filter((pid) => {
       if (pid === process.pid) return false;

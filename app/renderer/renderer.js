@@ -150,6 +150,7 @@
     if (model.conv.micMode === 'off' || busy) $('micLevel').style.width = '0%';
     // the photo stage shows the conversation state (the animation engine will animate it)
     $('photoStage').dataset.state = shown;
+    glow.setMode(glowModeFor(shown));
     renderStatusStrip();
   }
 
@@ -245,6 +246,148 @@
       model.photoKey = key;
       loadPhoto();
     }
+    // engine choice and ambient glow settings
+    put('cfgAvatarEngine', a.configuredEngine || engine.engine);
+    $('avatarRestartRow').classList.toggle('hidden', !a.restartNeeded);
+    if (a.glow) {
+      put('cfgGlowEnabled', a.glow.enabled, 'checked');
+      put('cfgGlowIntensity', a.glow.intensity);
+      if (a.sharpen !== undefined) put('cfgSharpen', a.sharpen);
+      $('cfgGlowIntensity').disabled = !a.glow.enabled;
+      glow.setConfig(a.glow);
+    }
+    renderLive();
+  }
+
+  // ------------------------------------------------- live photo (AVP-04) --
+  // Ditto's frames arrive as an MJPEG stream; the static photo stays underneath, so the
+  // face never disappears while the stream starts, restarts or is unavailable.
+  function renderLive() {
+    const a = model.avatar;
+    const e = (a && a.engine) || {};
+    const live = $('photoLive');
+    const url = a && a.photo && e.animating && e.streamUrl ? `${e.streamUrl}?p=${encodeURIComponent(a.photo.path)}` : '';
+    if (url !== live.dataset.url) {
+      live.dataset.url = url;
+      live.classList.add('hidden');
+      if (url) live.src = url; else live.removeAttribute('src');
+    }
+    let note = t('photo.static');
+    if (e.engine === 'ditto') {
+      if (e.state === 'ready' && e.animating) note = t('photo.live');
+      else if (e.state === 'error') note = t('photo.avatarError', { detail: e.detail || '' });
+      else if (a && a.photo) note = t('photo.loading');
+    }
+    $('photoNote').textContent = note;
+  }
+
+  // ----------------------------------------------------- ambient glow --
+  // Silent: calm, almost still. Listening: a very slow drift. Speaking: follows the loudness of
+  // the speech actually being heard (from the avatar service), with soft attack and release.
+  // Only opacity/transform of one layer change; the loop runs only while something moves.
+  const glow = (() => {
+    const node = () => $('stageGlow');
+    let cfg = { enabled: true, intensity: 0.6 };
+    let level = 0;
+    let shown = { o: 0, s: 1 };
+    let raf = 0;
+    let mode = 'silent';
+    // AVP-04 fix 2: a clearly visible response to the voice. Intensity scales everything, so
+    // the slider changes the effect noticeably (0 = no glow, 1 = strong). Calm states stay low.
+    function target() {
+      if (!cfg.enabled || cfg.intensity <= 0) return { o: 0, s: 1 };
+      const k = Math.min(1.25, cfg.intensity * 1.25);
+      if (mode === 'speaking') return { o: Math.min(1, k * (0.22 + 0.78 * level)), s: 1 + 0.12 * level * Math.min(1, cfg.intensity * 1.4) };
+      if (mode === 'listening') return { o: k * 0.26, s: 1.015 };
+      if (mode === 'thinking') return { o: k * 0.22, s: 1.0 };
+      return { o: k * 0.17, s: 1.0 };
+    }
+    let lastT = 0;
+    function step(now) {
+      const tg = target();
+      // Time-based smoothing (the same on 60 and 120 Hz displays): attack faster than release,
+      // so the glow swells with the voice and fades out softly; the rate of change is also
+      // capped (about 1.3 opacity units per second), so a sudden loud syllable never flashes.
+      const dt = Math.min(0.1, lastT ? (now - lastT) / 1000 : 1 / 60);
+      lastT = now;
+      const f = (perFrame60) => 1 - Math.pow(1 - perFrame60, dt * 60);
+      const limit = (d, maxPerS) => Math.max(-maxPerS * dt, Math.min(maxPerS * dt, d));
+      shown.o += limit((tg.o - shown.o) * f(tg.o > shown.o ? 0.14 : 0.06), 1.3);
+      shown.s += limit((tg.s - shown.s) * f(tg.s > shown.s ? 0.14 : 0.06), 0.18);
+      const n = node();
+      n.style.setProperty('--glow-o', shown.o.toFixed(3));
+      n.style.setProperty('--glow-s', shown.s.toFixed(4));
+      if (Math.abs(tg.o - shown.o) > 0.003 || Math.abs(tg.s - shown.s) > 0.0005 || (mode === 'speaking' && level > 0)) {
+        raf = requestAnimationFrame(step);
+      } else {
+        raf = 0;
+        lastT = 0;
+      }
+    }
+    function kick() { if (!raf) raf = requestAnimationFrame(step); }
+    return {
+      setConfig(c) { cfg = { enabled: c.enabled !== false, intensity: Number(c.intensity ?? 0.6) }; kick(); },
+      setLevel(v) { level = Math.max(0, Math.min(1, Number(v) || 0)); if (mode === 'speaking') kick(); },
+      setMode(m) {
+        if (m === mode) return;
+        mode = m;
+        node().classList.toggle('drift', m === 'listening' && cfg.enabled);
+        if (m !== 'speaking') level = 0;
+        kick();
+      },
+      setColors(a, b) { node().style.setProperty('--glow-a', a); node().style.setProperty('--glow-b', b); },
+    };
+  })();
+
+  function glowModeFor(shown) {
+    if (shown === 'SPEAKING') return 'speaking';
+    if (shown === 'THINKING' || shown === 'TRANSCRIBING') return 'thinking';
+    if (shown === 'LISTENING' || shown === 'HEARING SPEECH') return 'listening';
+    return 'silent';
+  }
+
+  /** Glow colours: the photo's own average colour, lifted towards a soft macOS blue/violet. */
+  function glowColorsFrom(img) {
+    try {
+      const c = document.createElement('canvas');
+      c.width = 16; c.height = 16;
+      const g = c.getContext('2d', { willReadFrequently: true });
+      g.drawImage(img, 0, 0, 16, 16);
+      const d = g.getImageData(0, 0, 16, 16).data;
+      let r = 0, gg = 0, b = 0;
+      for (let i = 0; i < d.length; i += 4) { r += d[i]; gg += d[i + 1]; b += d[i + 2]; }
+      const n = d.length / 4;
+      const mix = (v, to, k) => Math.round(v / n * (1 - k) + to * k);
+      glow.setColors(`${mix(r, 120, 0.55)}, ${mix(gg, 140, 0.55)}, ${mix(b, 255, 0.55)}`, `${mix(r, 190, 0.6)}, ${mix(gg, 120, 0.6)}, ${mix(b, 255, 0.6)}`);
+    } catch { /* default colours stay */ }
+  }
+
+  // -------------------------------------------------------- full screen --
+  function setPhotoFullscreen(on) {
+    if (document.body.classList.contains('photo-fs') === on) return;
+    document.body.classList.toggle('photo-fs', on);
+    if (api.windowControl) api.windowControl(on ? 'fullscreen-on' : 'fullscreen-off');
+    placeFsButton();
+    setTimeout(placeFsButton, 250);   // after the window has changed size
+  }
+
+  /** Put the full-screen button into the bottom-right corner of the photo as displayed
+      (object-fit: contain leaves margins, so the box corner is not the photo corner). */
+  function placeFsButton() {
+    const btn = $('fsBtn');
+    const live = $('photoLive');
+    const img = !live.classList.contains('hidden') && live.naturalWidth ? live : $('photoImg');
+    if (img.classList.contains('hidden') || !img.naturalWidth) { btn.classList.add('hidden'); return; }
+    btn.classList.remove('hidden');
+    const box = $('photoBox').getBoundingClientRect();
+    const stage = $('photoStage').getBoundingClientRect();
+    const scale = Math.min(box.width / img.naturalWidth, box.height / img.naturalHeight);
+    const w = img.naturalWidth * scale;
+    const h = img.naturalHeight * scale;
+    const right = box.left + (box.width + w) / 2 - stage.left;
+    const bottom = box.top + (box.height + h) / 2 - stage.top;
+    btn.style.left = `${Math.round(right - 34 - 10)}px`;
+    btn.style.top = `${Math.round(bottom - 34 - 10)}px`;
   }
 
   /** Show the chosen photo on the stage (read by the core, passed as a data URL). */
@@ -257,13 +400,15 @@
       $('photoEmpty').classList.remove('hidden');
       $('photoEmptyText').textContent = text;
     };
-    if (!photo) { showEmpty(t('photo.empty')); return; }
+    if (!photo) { showEmpty(t('photo.empty')); $('stageBg').style.backgroundImage = ''; return; }
     const data = await call('avatar:photo');
     if (!data || !data.dataUrl) { showEmpty(t('photo.missing', { path: photo.path })); return; }
+    img.onload = () => glowColorsFrom(img);
     img.src = data.dataUrl;
     img.alt = photo.name;
     img.classList.remove('hidden');
     $('photoEmpty').classList.add('hidden');
+    $('stageBg').style.backgroundImage = `url("${data.dataUrl}")`;
   }
 
   async function choosePhoto() {
@@ -626,6 +771,10 @@
     cfgPremiseCheck: (v) => ({ conversation: { premiseCheck: Boolean(v) } }),
     cfgLengthVariation: (v) => ({ conversation: { lengthVariation: Boolean(v) } }),
     cfgTtsOutput: (v) => ({ tts: { output: v } }),
+    cfgAvatarEngine: (v) => ({ avatar: { engine: v } }),
+    cfgGlowEnabled: (v) => ({ avatar: { glow: { enabled: Boolean(v) } } }),
+    cfgGlowIntensity: (v) => ({ avatar: { glow: { intensity: Number(v) } } }),
+    cfgSharpen: (v) => ({ avatar: { sharpen: Number(v) } }),
     cfgVadSilence: (v) => ({ vad: { minSilenceMs: Number(v) } }),
     cfgVadThreshold: (v) => ({ vad: { threshold: Number(v) } }),
     cfgVadMinSpeech: (v) => ({ vad: { minSpeechMs: Number(v) } }),
@@ -846,6 +995,11 @@
     } else {
       row(t('diag.res.gpu'), t('diag.res.unavailable'));
     }
+    const st = await call('avatar:stats');
+    if (st && st.renderFps !== undefined) {
+      row(t('diag.res.avatar'), t('diag.res.avatarVal', { fps: st.renderFps, buffer: st.bufferMs ?? '—', slack: st.slackMs ?? '—',
+        delay: st.speechDelayMs ?? '—', rep: st.framesRepeated ?? 0 }));
+    }
   }
 
   // ----------------------------------------------------------- navigation --
@@ -899,6 +1053,8 @@
         break;
       case 'message': addMessage(payload); break;
       case 'avatar': model.avatar = payload; renderAvatar(); break;
+      case 'avatarLevel': glow.setLevel(payload.level); break;
+      case 'window': if (payload && payload.fullscreen === false) setPhotoFullscreen(false); break;
       case 'assistantDelta': addDelta(payload); break;
       case 'stt': renderStt(payload); break;
       case 'turn':
@@ -932,6 +1088,19 @@
 
   // ----------------------------------------------------------------- init --
   function bind() {
+    $('photoStage').addEventListener('dblclick', (e) => {
+      if (e.target.closest('.photo-bar') || e.target.closest('.fs-btn')) return;
+      setPhotoFullscreen(!document.body.classList.contains('photo-fs'));
+    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setPhotoFullscreen(false); });
+    $('photoLive').addEventListener('load', () => { $('photoLive').classList.remove('hidden'); placeFsButton(); });
+    $('photoImg').addEventListener('load', placeFsButton);
+    $('fsBtn').addEventListener('click', (e) => { e.stopPropagation(); setPhotoFullscreen(!document.body.classList.contains('photo-fs')); });
+    $('fsBtn').addEventListener('dblclick', (e) => e.stopPropagation());
+    window.addEventListener('resize', placeFsButton);
+    if (window.ResizeObserver) new ResizeObserver(placeFsButton).observe($('photoBox'));
+    $('photoLive').addEventListener('error', () => { $('photoLive').classList.add('hidden'); });
+    $('cfgGlowIntensity').addEventListener('input', (e) => glow.setConfig({ enabled: $('cfgGlowEnabled').checked, intensity: Number(e.target.value) }));
     $('photoChooseBtn').addEventListener('click', choosePhoto);
     $('avatarChooseBtn').addEventListener('click', choosePhoto);
     $('avatarClearBtn').addEventListener('click', clearPhoto);

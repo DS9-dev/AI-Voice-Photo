@@ -22,6 +22,7 @@ function createWindow() {
     frame: false,             // custom titlebar drawn by the renderer (reference-app pattern)
     backgroundColor: '#111318',
     title: 'AI Voice Photo',
+    icon: path.join(ROOT, 'app', 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -33,6 +34,8 @@ function createWindow() {
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', (event) => event.preventDefault());
   win.on('closed', () => { win = null; });
+  // full-screen photo (AVP-04): the renderer follows the window, e.g. when Windows takes it out of full screen
+  win.on('leave-full-screen', () => sendToUi({ type: 'window', payload: { fullscreen: false } }));
   win.loadFile(path.join(ROOT, 'app', 'renderer', 'index.html'));
 }
 
@@ -41,6 +44,8 @@ function onWindowControl(_event, action) {
   if (!win || win.isDestroyed()) return;
   if (action === 'close') win.close();
   else if (action === 'minimize') win.minimize();
+  else if (action === 'fullscreen-on') win.setFullScreen(true);
+  else if (action === 'fullscreen-off') win.setFullScreen(false);
   else if (action === 'maximize') {
     if (win.isMaximized()) win.unmaximize(); else win.maximize();
   }
@@ -87,6 +92,8 @@ if (!app.requestSingleInstanceLock()) {
     }
   });
 
+  // own taskbar identity and icon (the window is started by electron.exe, directly or through the launcher)
+  if (process.platform === 'win32') app.setAppUserModelId('AIVoicePhoto.App');
   app.whenReady().then(() => {
     companion = createCompanion({ rootDir: ROOT });
     registerIpc({ ipcMain, companion, sendToUi, pickPhoto });

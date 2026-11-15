@@ -67,8 +67,11 @@ function relateProcesses(spawnPid, hello) {
  * to clean up its child.
  */
 class VoiceServiceClient extends EventEmitter {
-  constructor({ command, args = [], cwd, env, clock = nowMs, spawnImpl = spawn, helloTimeoutMs = 30000 }) {
+  constructor({ command, args = [], cwd, env, clock = nowMs, spawnImpl = spawn, helloTimeoutMs = 30000, components = COMPONENTS, label = 'Voice service' }) {
     super();
+    // the same process contract serves the avatar service (AVP-04): its own status components and name
+    this.components = components;
+    this.label = label;
     this.command = command;
     this.args = args;
     this.cwd = cwd;
@@ -91,11 +94,11 @@ class VoiceServiceClient extends EventEmitter {
     this._pending = new Map();
     this._stopping = false;
     this.statuses = {};
-    this._resetStatuses('stopped', 'Voice service not started');
+    this._resetStatuses('stopped', `${label} not started`);
   }
 
   _resetStatuses(state, detail) {
-    for (const c of COMPONENTS) this.statuses[c] = { component: c, state, detail, info: {} };
+    for (const c of this.components) this.statuses[c] = { component: c, state, detail, info: {} };
   }
 
   _setStatus(component, state, detail = '', info = {}) {
@@ -104,9 +107,9 @@ class VoiceServiceClient extends EventEmitter {
   }
 
   async start(initConfig) {
-    if (this.running) throw new Error('Voice service already running');
+    if (this.running) throw new Error(`${this.label} already running`);
     this._stopping = false;
-    for (const c of COMPONENTS) this._setStatus(c, 'loading', 'Starting voice service');
+    for (const c of this.components) this._setStatus(c, 'loading', `Starting ${this.label.toLowerCase()}`);
 
     let child;
     try {
@@ -193,7 +196,7 @@ class VoiceServiceClient extends EventEmitter {
   }
 
   _failStart(message) {
-    for (const c of COMPONENTS) this._setStatus(c, 'error', message);
+    for (const c of this.components) this._setStatus(c, 'error', message);
   }
 
   async _syncClock(samples = 5) {
@@ -224,7 +227,7 @@ class VoiceServiceClient extends EventEmitter {
     if (!raw || typeof raw.event !== 'string') return;
     const ev = normalizeEvent(raw, this.clockOffsetMs);
     if (payload) ev.payload = payload;  // binary frame: raw bytes, never logged
-    if (ev.event === 'status' && COMPONENTS.includes(ev.component)) {
+    if (ev.event === 'status' && this.components.includes(ev.component)) {
       this._setStatus(ev.component, ev.state, ev.detail || '', ev.info || {});
     }
     if (ev.replyTo !== undefined && this._pending.has(ev.replyTo)) {
@@ -252,7 +255,7 @@ class VoiceServiceClient extends EventEmitter {
     this._pending.clear();
     if (expected) this._resetStatuses('stopped', 'Voice service stopped');
     else this._resetStatuses('error', `Voice service exited unexpectedly (${detail})`);
-    for (const c of COMPONENTS) this.emit('status', this.statuses[c]);
+    for (const c of this.components) this.emit('status', this.statuses[c]);
     this.emit('exit', { code, signal, expected, detail, spawnPid: this.spawnPid, servicePid: this.servicePid });
     // The started process died on its own. If it was a launcher, make sure the
     // service process does not survive it. (stop() does its own reaping.)

@@ -3,11 +3,10 @@
  * Avatar engine boundary: the photo-animation engine of AI Voice Photo.
  *
  * The engine turns one source photo of a face into a talking, blinking,
- * slightly moving portrait. It is NOT implemented in this stage: the only
- * engine is 'none' (NullAvatarEngine), which shows the photo as it is and
- * never takes speech, so every answer is heard on the local output exactly as
- * before. A real engine (local neural renderer, separate process, …) plugs in
- * here without touching the conversation core.
+ * slightly moving portrait. Engines:
+ *   'ditto' (AVP-04)  Ditto in its own process, see core/avatar/dittoEngine.js
+ *   'none'            NullAvatarEngine: the photo is shown as it is and never takes
+ *                     speech, so every answer is heard on the local output.
  *
  * Contract (an EventEmitter):
  *   name                    engine id ('none', …)
@@ -30,6 +29,7 @@
  *                     reason: completed | stopped | dropped | superseded | interrupted | failed | queue_full
  *     'connected' / 'disconnected' {reason}                 a separate engine process came / went
  *     'state'         info()
+ *     'level'         0..1 loudness of the speech being heard (ambient glow), optional
  *
  * core/speech/speechOutput.js is the only user of the speech part: it decides
  * per answer whether speech goes to the engine (tts.output = 'avatar' and no
@@ -38,7 +38,7 @@
  */
 const { EventEmitter } = require('node:events');
 
-const ENGINES = ['none'];
+const ENGINES = ['none', 'ditto'];
 
 class NullAvatarEngine extends EventEmitter {
   constructor({ getConfig = null, log = null } = {}) {
@@ -80,6 +80,11 @@ class NullAvatarEngine extends EventEmitter {
 /** The engine named in the configuration; unknown names fall back to 'none'. */
 function createAvatarEngine(name, options = {}) {
   switch (name) {
+    case 'ditto': {
+      // AVP-04: Ditto in its own process (services/avatar_service)
+      const { DittoAvatarEngine } = require('./dittoEngine');
+      return new DittoAvatarEngine(options);
+    }
     case 'none':
     default:
       return new NullAvatarEngine(options);

@@ -47,7 +47,7 @@ async function main() {
   const endpoint = await fake.start();
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vvc-ui-root-'));
   const configStore = new ConfigStore({ defaultPath: path.join(ROOT, 'config', 'default.json'), userPath: path.join(dir, 'user.json') });
-  configStore.update({ llm: { endpoint } });
+  configStore.update({ llm: { endpoint }, avatar: { engine: 'none' }, tts: { output: 'local' } });
   const voiceClient = new VoiceServiceClient({
     command: process.execPath,
     args: [path.join(ROOT, 'tests', 'fixtures', 'fake_voice_service.js')],

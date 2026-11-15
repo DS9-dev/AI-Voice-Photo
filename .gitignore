@@ -60,3 +60,10 @@ artifacts/reports/*_RAW.json
 
 # AVP-03+: isolated animation experiments (venvs, models, outputs) — never published
 experiments/
+# private owner photos: the whole folder is excluded (explicitly, on top of experiments/)
+experiments/inputs/photos/
+.venv_avatar/
+artifacts/reports/avatar_smoke.json
+
+# launcher built from launcher/ (launcher/build_launcher.bat)
+/AI Voice Photo.exe

@@ -66,7 +66,7 @@ function evaluate({ dom, diag, statuses, consoleErrors, windowVisible }) {
   add('Chat controls exist (transcript, send, Clear Session, mic modes, text bypass routes)', dom && dom.hasTranscript && dom.hasSend && dom.hasClear && dom.micModes.length === 3 && dom.routes.length === 3);
   add('Conversation state is displayed', dom && Boolean(dom.badge), dom ? dom.badge : '');
   const avatar = chips.find((c) => c.name === 'AVATAR');
-  add('Avatar engine is shown as not configured', avatar && avatar.state === 'not_configured' && dom && Boolean(dom.avatarText), avatar ? avatar.text : '');
+  add('Avatar engine state is shown (AVP-04: Ditto)', avatar && ['ready', 'loading', 'not_configured', 'error'].includes(avatar.state) && dom && Boolean(dom.avatarText), avatar ? `${avatar.state}: ${avatar.detail}` : '');
   const lang = dom && dom.conversationLanguage;
   add('Settings show the conversation language (default: Русский)', lang && lang.value === 'ru' && lang.label === 'Русский', lang ? `${lang.value} / ${lang.label}` : 'missing');
   const langRows = (diag && diag.language) || [];

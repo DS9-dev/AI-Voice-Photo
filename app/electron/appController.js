@@ -26,6 +26,7 @@ const CHANNELS = Object.freeze([
   'avatar:photo',
   'avatar:choosePhoto',
   'avatar:clearPhoto',
+  'avatar:stats',
   'diag:get',
   'diag:resources',
   'diag:export',
@@ -58,6 +59,7 @@ function createHandlers(companion, { pickPhoto = null } = {}) {
       return file ? { chosen: true, avatar: companion.setPhoto({ file }) } : { chosen: false, avatar: companion.avatarInfo() };
     },
     'avatar:clearPhoto': () => companion.clearPhoto(),
+    'avatar:stats': () => companion.avatarStats(),
     'diag:get': () => companion.diagnostics(),
     'diag:resources': () => companion.getResources(),
     'diag:export': () => companion.exportDiagnostics(),

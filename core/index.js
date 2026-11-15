@@ -96,7 +96,7 @@ class Companion extends EventEmitter {
     this.tts = assertProvider('TTSProvider', overrides.tts || new VoiceServiceTtsProvider(this.voice));
     // The photo-animation engine (core/avatar). In this stage only 'none' exists:
     // the photo is shown as it is and every answer is heard locally.
-    this.avatar = assertProvider('AvatarEngine', overrides.avatar || createAvatarEngine(cfg.avatar.engine, { getConfig: () => this.config.get(), log: this.log }));
+    this.avatar = assertProvider('AvatarEngine', overrides.avatar || createAvatarEngine(cfg.avatar.engine, { rootDir, getConfig: () => this.config.get(), log: this.log }));
     // Speech output: local speakers or the avatar engine (lip sync), chosen per answer
     this.speech = assertProvider('TTSProvider', new SpeechOutput({
       local: this.tts,
@@ -158,6 +158,8 @@ class Companion extends EventEmitter {
     o.on('sessionCleared', (s) => { this.messages = []; this.lastStt = null; this._ui('sessionCleared', s); });
     this.speech.on('state', () => this._onAvatarChange());
     this.avatar.on('state', () => this._onAvatarChange());
+    // loudness of the speech being heard, for the ambient glow (AVP-04)
+    this.avatar.on('level', (level) => this._ui('avatarLevel', { level }));
     this.log.on('entry', (e) => this._ui('log', e));
 
     this.voice.on('status', (s) => {
@@ -385,6 +387,10 @@ class Companion extends EventEmitter {
     return {
       engine: this.avatar.info(),
       engines: ENGINES,
+      configuredEngine: cfg.avatar.engine,
+      restartNeeded: cfg.avatar.engine !== this.avatar.name,
+      glow: cfg.avatar.glow,
+      sharpen: cfg.avatar.sharpen,
       photo: photo ? { path: photo, name: path.basename(photo), exists: fs.existsSync(photo) } : null,
       speech: this.speech.info(),
     };
@@ -402,6 +408,11 @@ class Companion extends EventEmitter {
     this.updateConfig({ avatar: { photo: full } });
     this.log.info('avatar', `Photo: ${full}`);
     return this.avatarInfo();
+  }
+
+  /** Live numbers of the avatar service (render FPS, buffer, latency). */
+  async avatarStats() {
+    return typeof this.avatar.getStats === 'function' ? this.avatar.getStats() : null;
   }
 
   clearPhoto() {
@@ -458,6 +469,10 @@ class Companion extends EventEmitter {
       this.avatar.setPhoto(cfg.avatar.photo);
       this._onAvatarChange();
     }
+    if ((before.audio.outputDevice !== cfg.audio.outputDevice || before.audio.hostApi !== cfg.audio.hostApi || before.avatar.sharpen !== cfg.avatar.sharpen) && typeof this.avatar.configure === 'function') {
+      this.avatar.configure();
+    }
+    if (JSON.stringify(before.avatar.glow) !== JSON.stringify(cfg.avatar.glow)) this._onAvatarChange();
     if (before.avatar.engine !== cfg.avatar.engine) {
       this.log.warn('avatar', `Avatar engine '${cfg.avatar.engine}' takes effect after a restart of the application`);
     }

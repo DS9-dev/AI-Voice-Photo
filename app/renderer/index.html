@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: http://127.0.0.1:*">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AI Voice Photo</title>
   <link rel="stylesheet" href="styles.css">
@@ -60,11 +60,21 @@
         <div class="heading-note" id="micHint"></div>
 
         <div class="chat-body">
-          <section class="photo-stage card" id="photoStage" data-state="LISTENING" aria-labelledby="photoTitle">
+          <section class="photo-stage card" id="photoStage" data-state="LISTENING" aria-labelledby="photoTitle" data-i18n-title="photo.fs.enter">
+            <div class="stage-bg" id="stageBg" aria-hidden="true"></div>
+            <div class="stage-glow" id="stageGlow" aria-hidden="true"></div>
             <div class="photo-frame">
-              <img id="photoImg" class="hidden" alt="" data-i18n-title="photo.title">
+              <div class="photo-box" id="photoBox">
+                <img id="photoImg" class="hidden" alt="">
+                <img id="photoLive" class="live hidden" alt="">
+              </div>
               <div class="photo-empty" id="photoEmpty"><span id="photoEmptyText" data-i18n="photo.empty"></span></div>
             </div>
+            <div class="fs-hint" data-i18n="photo.fs.hint"></div>
+            <button class="fs-btn" id="fsBtn" type="button" data-i18n-title="photo.fs.button" data-i18n-aria="photo.fs.button">
+              <svg class="ico-expand" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10"/></svg>
+              <svg class="ico-collapse" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2.5V6H2.5M13.5 6H10V2.5M10 13.5V10h3.5M2.5 10H6v3.5"/></svg>
+            </button>
             <div class="photo-bar">
               <span class="photo-note" id="photoNote" data-i18n="photo.static"></span>
               <button id="photoChooseBtn" data-i18n="photo.choose"></button>
@@ -254,7 +264,12 @@
             <div class="rows">
               <div class="row"><span data-i18n="avatar.photo"></span>
                 <span class="control-pair"><span class="value" id="avatarPhotoName"></span><button id="avatarChooseBtn" data-i18n="photo.choose"></button><button id="avatarClearBtn" data-i18n="photo.clear"></button></span></div>
-              <div class="row"><span><span data-i18n="avatar.engine"></span><small data-i18n="avatar.engine.hint"></small></span><span class="value" data-i18n="avatar.engine.none"></span></div>
+              <div class="row"><label for="cfgAvatarEngine"><span data-i18n="avatar.engine"></span><small data-i18n="avatar.engine.hint"></small></label>
+                <select id="cfgAvatarEngine"><option value="ditto" data-i18n="avatar.engine.ditto"></option><option value="none" data-i18n="avatar.engine.none"></option></select></div>
+              <div class="row hidden" id="avatarRestartRow"><span></span><span class="value warn" data-i18n="avatar.engine.restart"></span></div>
+              <div class="row"><label for="cfgGlowEnabled"><span data-i18n="avatar.glow"></span><small data-i18n="avatar.glow.hint"></small></label><input type="checkbox" class="switch" id="cfgGlowEnabled"></div>
+              <div class="row"><label for="cfgGlowIntensity" data-i18n="avatar.glow.intensity"></label><input type="range" id="cfgGlowIntensity" min="0" max="1" step="0.05"></div>
+              <div class="row"><label for="cfgSharpen"><span data-i18n="avatar.sharpen"></span><small data-i18n="avatar.sharpen.hint"></small></label><input type="range" id="cfgSharpen" min="0" max="1" step="0.05"></div>
               <div class="row"><label for="cfgTtsOutput"><span data-i18n="avatar.speech"></span><small data-i18n="avatar.speech.hint"></small></label>
                 <select id="cfgTtsOutput"><option value="local" data-i18n="avatar.speech.local"></option><option value="avatar" data-i18n="avatar.speech.avatar"></option></select></div>
               <div class="row"><span></span><span class="value" id="avatarSpeechState"></span></div>

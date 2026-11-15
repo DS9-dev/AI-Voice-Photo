@@ -58,7 +58,7 @@ async function main() {
 
   // --- stray helper processes -------------------------------------------
   if (IS_WIN) {
-    const out = probe('powershell', ['-NoProfile', '-Command', "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*services.voice_service*--app=ai-voice-photo*' -and $_.Name -like 'python*' } | ForEach-Object { $_.ProcessId }"]);
+    const out = probe('powershell', ['-NoProfile', '-Command', "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*services.*_service*--app=ai-voice-photo*' -and $_.Name -like 'python*' } | ForEach-Object { $_.ProcessId }"]);
     report.voiceServiceProcesses = out ? out.split(/\s+/).filter(Boolean).map(Number) : [];
   }
 

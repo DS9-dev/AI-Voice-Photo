@@ -7,8 +7,15 @@
     "lengthVariation": false
   },
   "avatar": {
-    "engine": "none",
-    "photo": ""
+    "engine": "ditto",
+    "photo": "",
+    "maxSize": 1280,
+    "glow": {
+      "enabled": true,
+      "intensity": 0.6
+    },
+    "pythonPath": "",
+    "sharpen": 0.6
   },
   "characters": {
     "activeId": "default",
@@ -50,7 +57,7 @@
     "threads": 4,
     "sampleRate": 48000,
     "sentenceStreaming": true,
-    "output": "local"
+    "output": "avatar"
   },
   "vad": {
     "provider": "silero-vad",
